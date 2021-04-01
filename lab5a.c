@@ -4,6 +4,7 @@
  * Part A
  * Reads avr clock signal and determines if too fast or slow
  */
+#define PRINT_DELAY_MAX 999999
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,7 +26,7 @@ int main(int argc, char** argv)
 		memset(frequencies,100,10*sizeof(double));
 		average_frequency = 100;
 		sum_frequencies = 100 * 10;
-		print_delay = 0;
+		print_delay = 9;
 		clock0 = 0;
 
 		// Set up GPIO 6 as input for reading signal
@@ -40,19 +41,22 @@ int main(int argc, char** argv)
 				if ((gpio_current == 1) && (gpio_previous == 0)) {
 						for (i = 0; i < 9; i++)
 								frequencies[i] = frequencies[i+1];
+						
+						// Calculate frequency of output waveform
 						clockf = clock();
 						frequencies[9] = (double)(CLOCKS_PER_SEC)/(clockf - clock0);
 						clock0 = clockf;
 				}
+				print_delay = (print_delay == PRINT_DELAY_MAX) ? 0 : (print_delay + 1);
 				gpio_previous = gpio_current;
-
+				
 				// Compute average frequency
 				sum_frequencies = 0;
 				for (i = 0; i < 10; i++)
 						sum_frequencies += frequencies[i];
 				average_frequency = sum_frequencies/10;
 
-				if (print_delay == 999999) {
+				if (print_delay == PRINT_DELAY_MAX) {
 						// Check bounds of frequency within tolerance
 						if (average_frequency > 8000000)
 								printf("Frequency out of bounds\n");
@@ -67,7 +71,6 @@ int main(int argc, char** argv)
 												average_frequency);
 						}
 				}
-				print_delay = (print_delay == 999999) ? 0 : (print_delay + 1);
 		}
 }
 

@@ -7,10 +7,10 @@
 #define PRINT_DELAY_MAX 9999999
 #define TOLERANCE 0.5
 #include <stdio.h>
-#include <stdlib.h>
+#include <errno.h>
 #include <string.h>
+#include <stdlib.h>
 #include <time.h>
-#include <unistd.h>
 #include "wiringPi.h"
 int main(int argc, char** argv)
 {
@@ -20,6 +20,7 @@ int main(int argc, char** argv)
 		double average_frequency, sum_frequencies, fmin, fmax;
 		unsigned char i;
 		unsigned int print_delay;
+		int n;
 		char eeprom_write[256];
 		char gpio_previous, gpio_current; // Previous and current reading GPIO state
 		char osccal_sign, osccal_val; // Sign and value for osccal
@@ -127,7 +128,9 @@ int main(int argc, char** argv)
 										op_type);
 							//printf("%s\n",eeprom_write);
 							//fflush(stdout);
-							system(eeprom_write);
+							n = system(eeprom_write);
+							if (n == -1)
+									fprintf(stdout, "Error: %s", strerror(errno));
 						}
 				}
 		}

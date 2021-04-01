@@ -4,7 +4,7 @@
  * Part A
  * Reads avr clock signal and determines if too fast or slow
  */
-#define PRINT_DELAY_MAX 9999999
+#define PRINT_DELAY_MAX 4999999
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -23,10 +23,10 @@ int main(int argc, char** argv)
 		clock_t clock0, clockf; // initial and final clock cycles of rising edge
 
 		// Set up values for variables
-		memset(frequencies,100,10*sizeof(double));
-		average_frequency = 100;
-		sum_frequencies = 100 * 10;
-		print_delay = 9;
+		memset(frequencies,0,10*sizeof(double));
+		average_frequency = 0;
+		sum_frequencies = 0;
+		print_delay = 0;
 		clock0 = 0;
 
 		// Set up GPIO 6 as input for reading signal
@@ -57,17 +57,19 @@ int main(int argc, char** argv)
 				average_frequency = sum_frequencies/10;
 
 				if (print_delay == PRINT_DELAY_MAX) {
+						printf("Frequency: ");
+						fflush(stdout);
 						// Check bounds of frequency within tolerance
 						if (average_frequency > 8000000)
-								printf("Frequency out of bounds\n");
+								printf("INVALID\n");
 						else if (average_frequency > 100.5) {
-								printf("Frequency is about %lf Hz, too high\n",
+								printf("%8.3lf Hz, too high\n",
 												average_frequency);
 						} else if (average_frequency < 99.5) {
-								printf("Frequency is about %lf Hz, too low\n",
+								printf("%8.3lf Hz, too low\n",
 												average_frequency);
 						} else {
-								printf("Frequency is about %lf Hz, just right\n",
+								printf("%8.3lf Hz, just right\n",
 												average_frequency);
 						}
 				}

@@ -4,7 +4,7 @@
  * Part A
  * Reads avr clock signal and determines if too fast or slow
  */
-#define PRINT_DELAY_MAX 99999999
+#define PRINT_DELAY_MAX 9999999
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 		char avr_programmer[8] = "pi_1"; // programmer to use
 		char avr_chip[16] = "m88p"; // type of avr chip
 		char avr_section[16] = "eeprom"; // access eeprom of chip
-		char avr_op = 'w'; // write
+		char avr_op = 'w'; // write to eeprom
 		char op_type = 'm'; // immediatle values
 
 		// Set up values for variables
@@ -71,21 +71,23 @@ int main(int argc, char** argv)
 				average_frequency = sum_frequencies/10;
 
 				if (print_delay == PRINT_DELAY_MAX) {
-						for (i = 0; i < 10; i++) {
-						printf("frequencies[i] = %lf\n",frequencies[i]);
-						fflush(stdout);
-						}
+						/*for (i = 0; i < 10; i++) {
+								printf("frequencies[i] = %lf\n",frequencies[i]);
+								fflush(stdout);
+						}*/
 
 						printf("Frequency: ");
 						fflush(stdout);
 						// Check if frequency is some ridiculous number indicating an error
 						if (average_frequency > 8000000) {
 								printf("INVALID\n");
+								fflush(stdout);
 								osccal_val = 0;
-						// Check if frequency is above tolerance
+								// Check if frequency is above tolerance
 						} else if (average_frequency > 100.5) {
 								printf("%8.3lf Hz, too high, adjusting eeprom\n",
 												average_frequency);
+								fflush(stdout);
 								if (osccal_sign == 1)
 										osccal_val = 0;
 								else
@@ -95,6 +97,7 @@ int main(int argc, char** argv)
 						} else if (average_frequency < 99.5) {
 								printf("%8.3lf Hz, too low, adjusting eeprom\n",
 												average_frequency);
+								fflush(stdout);
 								if (osccal_sign == 0)
 										osccal_val = 0;
 								else
@@ -114,13 +117,13 @@ int main(int argc, char** argv)
 										avr_chip,
 										avr_section,
 										avr_op,
-										osccal_sign,
 										osccal_val,
+										osccal_sign,
 										op_type);
-							printf("%s\n",eeprom_write);
+							//printf("%s\n",eeprom_write);
+							//fflush(stdout);
 							system(eeprom_write);
 						}
-
 				}
 		}
 }

@@ -5,6 +5,7 @@
  * Reads avr clock signal and determines if too fast or slow
  */
 #define PRINT_DELAY_MAX 9999999
+#define TOLERANCE 0.4
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,7 +15,9 @@
 int main(int argc, char** argv)
 {
 		double frequencies[10]; // array of frequencies
-		double average_frequency, sum_frequencies; // average of frequencies
+		/* average frequency, sum of frequencies in array, minimum frequency
+		 * within tolerance, and maximum frequency within tolerance */
+		double average_frequency, sum_frequencies, fmin, fmax;
 		unsigned char i;
 		unsigned int print_delay;
 		char eeprom_write[256];
@@ -39,6 +42,8 @@ int main(int argc, char** argv)
 		sum_frequencies = 0;
 		print_delay = 0;
 		clock0 = 0;
+		fmin = 100.0 - TOLERANCE;
+		fmax = 100.0 + TOLERANCE;
 
 		// Set up GPIO 6 as input for reading signal
 		wiringPiSetup();
@@ -84,8 +89,18 @@ int main(int argc, char** argv)
 								fflush(stdout);
 								osccal_val = 0;
 								// Check if frequency is above tolerance
-						} else if (average_frequency > 100.5) {
+						} else if (average_frequency > fmax) {
 								printf("%8.3lf Hz, too high, adjusting eeprom\n",
+												average_frequency);
+								fflush(stdout);
+								if (osccal_sign == 0)
+										osccal_val = 1;
+								else
+										osccal_val++;
+								osccal_sign = 1;
+						// Check if frequency is below tolerance
+						} else if (average_frequency < fmin) {
+								printf("%8.3lf Hz, too low, adjusting eeprom\n",
 												average_frequency);
 								fflush(stdout);
 								if (osccal_sign == 1)
@@ -93,23 +108,13 @@ int main(int argc, char** argv)
 								else
 										osccal_val++;
 								osccal_sign = 0;
-						// Check if frequency is below tolerance
-						} else if (average_frequency < 99.5) {
-								printf("%8.3lf Hz, too low, adjusting eeprom\n",
-												average_frequency);
-								fflush(stdout);
-								if (osccal_sign == 0)
-										osccal_val = 0;
-								else
-										osccal_val++;
-								osccal_sign = 1;
 						// Frequency is within bounds
 						} else {
 								printf("%8.3lf Hz, just right\n",
 												average_frequency);
 						}
 
-						if ((average_frequency > 100.5) || (average_frequency < 99.5)) {
+						if ((average_frequency > fmax) || (average_frequency < fmin)) {
 							sprintf(eeprom_write,
 										"sudo avrdude -C %s -c %s -p %s -U %s:%c:%#x,%#x:%c",
 										avr_config,

@@ -4,7 +4,7 @@
  * Part A
  * Reads avr clock signal and determines if too fast or slow
  */
-#define PRINT_DELAY_MAX 4999999
+#define PRINT_DELAY_MAX 9999999
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

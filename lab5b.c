@@ -5,7 +5,7 @@
  * Reads avr clock signal and determines if too fast or slow
  */
 #define PRINT_DELAY_MAX 9999999
-#define TOLERANCE 0.4
+#define TOLERANCE 0.5
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

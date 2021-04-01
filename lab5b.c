@@ -4,7 +4,7 @@
  * Part A
  * Reads avr clock signal and determines if too fast or slow
  */
-#define PRINT_DELAY_MAX 9999999
+#define PRINT_DELAY_MAX 99999999
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,19 +14,30 @@
 int main(int argc, char** argv)
 {
 		double frequencies[10]; // array of frequencies
-		double average_frequency; // average of frequencies
-		double sum_frequencies; // sum of all frequencies
+		double average_frequency, sum_frequencies; // average of frequencies
 		unsigned char i;
 		unsigned int print_delay;
-		char gpio_previous; // Previous reading GPIO state
-		char gpio_current; // Current reading GPIO state
+		char eeprom_write[256];
+		char gpio_previous, gpio_current; // Previous and current reading GPIO state
+		char osccal_sign, osccal_val; // Sign and value for osccal
 		clock_t clock0, clockf; // initial and final clock cycles of rising edge
 
+		// Parameters for running avrdude via system
+		char avr_config[64] = "./lab5_avrdude_gpio.conf"; // config file to use
+		char avr_programmer[8] = "pi_1"; // programmer to use
+		char avr_chip[16] = "m88p"; // type of avr chip
+		char avr_section[16] = "eeprom"; // access eeprom of chip
+		char avr_op = 'w'; // write
+		char op_type = 'm'; // immediatle values
+
 		// Set up values for variables
-		memset(frequencies,100,10*sizeof(double));
-		average_frequency = 100;
-		sum_frequencies = 100 * 10;
-		print_delay = 9;
+		memset(frequencies,0,10*sizeof(double));
+		memset(eeprom_write,0,128*sizeof(char));
+		osccal_sign = 1;
+		osccal_val = 0;
+		average_frequency = 0;
+		sum_frequencies = 0;
+		print_delay = 0;
 		clock0 = 0;
 
 		// Set up GPIO 6 as input for reading signal
@@ -47,6 +58,8 @@ int main(int argc, char** argv)
 						frequencies[9] = (double)(CLOCKS_PER_SEC)/(clockf - clock0);
 						clock0 = clockf;
 				}
+
+
 				print_delay = (print_delay == PRINT_DELAY_MAX) ? 0 : (print_delay + 1);
 				gpio_previous = gpio_current;
 				
@@ -54,22 +67,60 @@ int main(int argc, char** argv)
 				sum_frequencies = 0;
 				for (i = 0; i < 10; i++)
 						sum_frequencies += frequencies[i];
+
 				average_frequency = sum_frequencies/10;
 
 				if (print_delay == PRINT_DELAY_MAX) {
-						// Check bounds of frequency within tolerance
-						if (average_frequency > 8000000)
-								printf("Frequency out of bounds\n");
-						else if (average_frequency > 100.5) {
-								printf("Frequency is about %lf Hz, too high\n",
+						for (i = 0; i < 10; i++) {
+						printf("frequencies[i] = %lf\n",frequencies[i]);
+						fflush(stdout);
+						}
+
+						printf("Frequency: ");
+						fflush(stdout);
+						// Check if frequency is some ridiculous number indicating an error
+						if (average_frequency > 8000000) {
+								printf("INVALID\n");
+								osccal_val = 0;
+						// Check if frequency is above tolerance
+						} else if (average_frequency > 100.5) {
+								printf("%8.3lf Hz, too high, adjusting eeprom\n",
 												average_frequency);
+								if (osccal_sign == 1)
+										osccal_val = 0;
+								else
+										osccal_val++;
+								osccal_sign = 0;
+						// Check if frequency is below tolerance
 						} else if (average_frequency < 99.5) {
-								printf("Frequency is about %lf Hz, too low\n",
+								printf("%8.3lf Hz, too low, adjusting eeprom\n",
 												average_frequency);
+								if (osccal_sign == 0)
+										osccal_val = 0;
+								else
+										osccal_val++;
+								osccal_sign = 1;
+						// Frequency is within bounds
 						} else {
-								printf("Frequency is about %lf Hz, just right\n",
+								printf("%8.3lf Hz, just right\n",
 												average_frequency);
 						}
+
+						if ((average_frequency > 100.5) || (average_frequency < 99.5)) {
+							sprintf(eeprom_write,
+										"sudo avrdude -C %s -c %s -p %s -U %s:%c:%#x,%#x:%c",
+										avr_config,
+										avr_programmer,
+										avr_chip,
+										avr_section,
+										avr_op,
+										osccal_sign,
+										osccal_val,
+										op_type);
+							printf("%s\n",eeprom_write);
+							system(eeprom_write);
+						}
+
 				}
 		}
 }
